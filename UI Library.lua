@@ -128,7 +128,7 @@ local colored, colors = library.colored, library.colors
 
 do
 	local varargresolve = {
-		Window = {"Name", "Theme"},
+		Window = {"Name"},
 		Tab = {"Name"},
 		Section = {"Name"},
 		Label = {"Text", "Flag", "UnloadValue", "UnloadFunc"},
