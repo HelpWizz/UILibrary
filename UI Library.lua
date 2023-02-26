@@ -1,5 +1,3 @@
-
-
 local library = {
 	Version = "1.0",
 	WorkspaceName = "Tolu's Library",
@@ -22,7 +20,9 @@ local library = {
 		ActiveText = Color3.fromRGB(255, 255, 255),
 		SupletaryText = Color3.fromRGB(190, 190, 190),
 		Secondary = Color3.fromRGB(45, 48, 52),
-		Command = Color3.fromRGB(59, 63, 68)
+		Command = Color3.fromRGB(59, 63, 68),
+		OffColour = Color3.fromRGB(255, 71, 71),
+		OnColour = Color3.fromRGB(123, 255, 116)
 	},
 	Font = {
 		FredokaOne = Enum.Font.FredokaOne,
@@ -126,6 +126,7 @@ local isDraggingSomething = false
 local lasthidebing = 0
 local elements = library.elements
 local colored, colors = library.colored, library.colors
+local library_flags = library.flags
 
 do
 	local varargresolve = {
@@ -419,6 +420,7 @@ function library:CreateWindow(options, ...)
 			local sectionName = options.Name or "Unnamed Section"
 			local newSection = Instance.new("Frame")
 			local newSectionUiCorner = Instance.new("UICorner")
+			newSection.Name = options.Name .. "Container"
 			newSection.BackgroundColor3 = library.ColourTheme.Command
 			newSection.Size = UDim2.new(0.98, 0,0, 33)
 			newSection.Parent = newTabHolderScrollingFrame
@@ -436,6 +438,91 @@ function library:CreateWindow(options, ...)
 			end
 			tabFunctions:Update()
 			
+			local commandFunction = {
+				Flags = {},
+				Remove = function()
+					if newSection then
+						newSection.Parent = nil
+						windowFunctions:UpdateAll()
+					end
+				end
+			}
+            function commandFunction:AddToggle(options, ...)
+				options = (options and type(options) == "string" and resolvevararg("Tab", options, ...)) or options
+				local toggleName, alreadyEnabled, callback, flagName = assert(options.Name, "Missing Name for new toggle."), options.Value or options.Enabled, options.Callback, options.Flag or (function()
+					library.unnamedtoggles = 1 + (library.unnamedtoggles or 0)
+					return "Toggle" .. tostring(library.unnamedtoggles)
+				end)()
+                if elements[flagName] ~= nil then
+                    warn(debug.traceback("Warning! Re-used flag '" .. flagName .. "'", 3))
+                end
+				local newToggle = Instance.new("Frame")
+				local newToggleUiCorner = Instance.new("UICorner")
+				local newToggleText = Instance.new("TextLabel")
+				local newToggleContainerText = Instance.new("TextButton")
+				local newToggleContainerUiCornerText = Instance.new("UICorner")
+				newToggle.Name = options.Name
+				newToggle.BackgroundTransparency = 1
+				newToggle.Position = UDim2.fromScale(0.933, 0.091)
+				newToggle.Size = UDim2.fromScale(0.048, 0.818)
+				newToggle.Parent = newSection
+				newToggleUiCorner.CornerRadius = UDim.new(0, 8)
+				newToggleUiCorner.Parent = newToggle
+				newToggleText.Position = UDim2.new(0.014, 0, 0.212, 0)
+				newToggleText.Size = UDim2.new(0.341, 0, 0.545, 0)
+				newToggleText.Font = library.Font.FredokaOne
+				newToggleText.BackgroundTransparency = 1
+				newToggleText.Text = options.Name
+				newToggleText.TextColor3 = library.ColourTheme.ActiveText
+				newToggleText.TextScaled = true
+				newToggleText.TextXAlignment = Enum.TextXAlignment.Left
+				newToggleText.Name  = options.Name.."Title"
+				newToggleText.Parent = newSection
+				newToggleContainerText.Size = UDim2.fromScale(1, 1)
+				newToggleContainerText.Position = UDim2.new(0, 0, 0, 0)
+				newToggleContainerUiCornerText.Parent = newToggleContainerText
+				newToggleContainerText.BackgroundColor3 = library.ColourTheme.OffColour
+				newToggleContainerText.Text = ""
+				newToggleContainerText.Name = newToggle.Name .."Button"
+				newToggleContainerText.Parent = newToggle
+				newToggleContainerUiCornerText = UDim.new(0, 7)
+				local last_v = nil
+				local function Set(t, newStatus)
+					if nil == newStatus and t ~= nil then
+						newStatus = t
+					end
+					last_v = library_flags[flagName]
+					if options.Condition ~= nil then
+						if type(options.Condition) == "function" then
+							local v, e = pcall(options.Condition, newStatus, last_v)
+							if e then
+								if not v then
+									warn(debug.traceback(string.format("Error in toggle %s's Condition function: %s", flagName, e), 2))
+								end
+							else
+								return last_v
+							end
+						end
+					end
+					if newStatus ~= nil and type(newStatus) == "boolean" then
+						library_flags[flagName] = newStatus
+						if options.Location then
+							options.Location[options.LocationFlag or flagName] = newStatus
+						end
+						if callback and (last_v ~= newStatus or options.AllowDuplicateCalls) then
+							TweenService:Create(newToggleContainerText, TweenInfo.new(0.35, library.configuration.easingStyle, library.configuration.easingDirection), {
+								BackgroundColor3 = (newStatus and library.ColourTheme.OffColour) or library.ColourTheme.OnColour})
+								:Play()
+							task.spawn(callback, newStatus, last_v)
+						end
+					end
+					return newStatus
+				end
+            end
+			function commandFunction:AddColorPicker(options, ...)
+				
+			end
+			return commandFunction
 		end
 		return tabFunctions
 	end
